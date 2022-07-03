@@ -17,20 +17,17 @@ services:
       - ./data/loki-data:/tmp/loki
 
   rabbitmq:
-    image: rabbitmq:3.7.28-management
-    #container_name: rabbitmq
-    volumes:
-        - ./etc/rabbitmq/:/etc/rabbitmq/
-        - ./data/rabbitmq/data/:/var/lib/rabbitmq/
-        - ./data/rabbitmq/logs/:/var/log/rabbitmq/
-    environment:
-        RABBITMQ_ERLANG_COOKIE: ${RABBITMQ_ERLANG_COOKIE:-secret_cookie}
-        RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-admin}
-        RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-admin}
+    image: rabbitmq:3-management-alpine
+    #container_name: 'rabbitmq'
+#    volumes:
+#        - ./etc/rabbitmq/:/etc/rabbitmq/
+#        - ./data/rabbitmq/data/:/var/lib/rabbitmq/
+#        - ./data/rabbitmq/logs/:/var/log/rabbitmq/
     ports:
         - 5672:5672    #amqp
         - 15672:15672  #http
         - 15692:15692  #prometheus
+    command: ["bash", "-c", "chmod 400 /var/lib/rabbitmq/.erlang.cookie; rabbitmq-server"]
 
   redis:
     image: "redis:alpine"
@@ -93,12 +90,12 @@ services:
 
   boot-otel-tempo-mq-consumer:
     image: "mnadeem/boot-otel-tempo-mq-consumer:0.0.1-SNAPSHOT"
-    command: '/app/bin/wait-for.sh rabbitmq:5672 -t 50 -- sh /app/bin/start-app.sh'
+    command: 'sh /app/bin/start-app.sh'
     ports:
       - "8091:8091"
     environment:
-      RMQ_USER: ${RABBITMQ_DEFAULT_USER:-admin}
-      RMQ_PASS: ${RABBITMQ_DEFAULT_PASS:-admin}
+      RMQ_USER: guest
+      RMQ_PASS: guest
       REDIS_CLUSTER_NODES: ${REDIS_CLUSTER_NODES:-redis:6379}
       REDIS_CLUSTER_MAX_REDIRECTS: ${REDIS_CLUSTER_MAX_REDIRECTS:-3}
       REDIS_HOST: ${REDIS_HOST:-redis}
@@ -130,8 +127,8 @@ services:
       - "8080:8080"
     environment:
       PROVIDER1_URL_BASE: "http://boot-otel-tempo-provider1:8090"
-      RMQ_USER: ${RABBITMQ_DEFAULT_USER:-admin}
-      RMQ_PASS: ${RABBITMQ_DEFAULT_PASS:-admin}
+      RMQ_USER: guest
+      RMQ_PASS: guest
     volumes:
       - ./data/logs:/app/logs
     depends_on:
